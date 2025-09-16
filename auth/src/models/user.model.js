@@ -3,7 +3,7 @@ const mongoose=require('mongoose');
 
 
 
-const adressSchema=new mongoose.Schema({
+const addressSchema=new mongoose.Schema({
     street:{type:String},
             city:{type:String},
             state:{type:String},
@@ -37,9 +37,7 @@ const userSchema=new mongoose.Schema({
         enum:['user','seller'],
         default:'user'
     },
-    adress:[
-        adressSchema
-    ]
+    addresses: [addressSchema]  
 
 
 });

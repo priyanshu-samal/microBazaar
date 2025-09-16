@@ -29,6 +29,9 @@ const registerUserValidator = [
   body('fullName.lastName')
     .notEmpty().withMessage('Last name is required')
     .isString().withMessage('Last name must be a string'),
+    body('role')
+    .optional()
+    .isIn(['user', 'seller']).withMessage('Role must be either user or seller'), 
 
   responseWithValidationErrors
 ];
@@ -50,4 +53,12 @@ const loginUserValidator = [
   responseWithValidationErrors
 ];
 
-module.exports = { registerUserValidator, loginUserValidator };
+const addressValidator = [
+  body('street').optional().isString().withMessage('Street must be a string'),
+  body('city').optional().isString().withMessage('City must be a string'),
+  body('state').optional().isString().withMessage('State must be a string'),
+  body('country').optional().isString().withMessage('Country must be a string'),
+  body('zip').optional().isString().withMessage('Zip must be a string'),
+];
+
+module.exports = { registerUserValidator, loginUserValidator, addressValidator };

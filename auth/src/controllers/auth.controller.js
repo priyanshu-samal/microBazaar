@@ -1,17 +1,15 @@
 const userModel = require('../models/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const redis = require('../db/redis')
+const redis = require('../db/redis');
 
-
+// -------------------- REGISTER --------------------
 async function registerUser(req, res) {
   try {
-    const { username, email, password, fullName: { firstName, lastName } } = req.body;
+    const { username, email, password, fullName: { firstName, lastName }, role } = req.body;
 
     const existingUser = await userModel.findOne({ $or: [{ username }, { email }] });
-    if (existingUser) {
-      return res.status(409).json({ message: 'User with this email or username already exists' });
-    }
+    if (existingUser) return res.status(409).json({ message: 'User exists' });
 
     const hash = await bcrypt.hash(password, 10);
 
@@ -19,28 +17,22 @@ async function registerUser(req, res) {
       username,
       email,
       password: hash,
+      role,
       fullName: { firstName, lastName }
     });
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000
-    });
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 });
 
-    res.status(201).json({
-      message: 'User registered successfully',
-      user: { id: user._id, username: user.username, email: user.email, fullName: user.fullName }
-    });
-
+    res.status(201).json({ message: 'User registered', user: { id: user._id, username, email, fullName: user.fullName } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 }
 
+// -------------------- LOGIN --------------------
 async function loginUser(req, res) {
   try {
     const { username, email, password } = req.body;
@@ -52,23 +44,16 @@ async function loginUser(req, res) {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000
-    });
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 });
 
-    res.status(200).json({
-      message: 'Logged in successfully',
-      user: { id: user._id, username: user.username, email: user.email, fullName: user.fullName }
-    });
-
+    res.status(200).json({ message: 'Logged in', user: { id: user._id, username: user.username, email: user.email, fullName: user.fullName } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 }
 
+// -------------------- CURRENT USER --------------------
 async function getCurrentUser(req, res) {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
@@ -79,24 +64,73 @@ async function getCurrentUser(req, res) {
   }
 }
 
-
-
+// -------------------- LOGOUT --------------------
 async function logoutUser(req, res) {
   try {
-    const token = req.cookies.token; 
-    if (token) {
-      await redis.set(`blacklist_${token}`, token, 'EX', 24 * 60 * 60); 
-    }
-
+    const token = req.cookies.token;
+    if (token) await redis.set(`blacklist_${token}`, token, 'EX', 24 * 60 * 60);
     res.clearCookie('token');
-    return res.status(200).json({ message: 'Logged out successfully' });
+    res.status(200).json({ message: 'Logged out successfully' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// -------------------- ADDRESSES --------------------
+async function getUserAddresses(req, res) {
+  try {
+    const user = await userModel.findById(req.user._id).select('addresses');
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user.addresses);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function addAddress(req, res) {
+  try {
+    const user = await userModel.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.addresses.push(req.body); // add new address
+    await user.save();
+
+    res.status(200).json({ addresses: user.addresses });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function deleteAddress(req, res) {
+  try {
+    const user = await userModel.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Ensure the address exists
+    const address = user.addresses.id(req.params.addressId);
+    if (!address) return res.status(404).json({ message: "Address not found" });
+
+    // Use pull instead of remove
+    user.addresses.pull({ _id: req.params.addressId });
+    await user.save();
+
+    res.status(200).json({ addresses: user.addresses });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 }
 
 
-
-
-module.exports = { registerUser, loginUser, getCurrentUser, logoutUser };
+module.exports = {
+  registerUser,
+  loginUser,
+  getCurrentUser,
+  logoutUser,
+  getUserAddresses,
+  addAddress,
+  deleteAddress
+};
