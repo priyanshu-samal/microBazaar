@@ -75,6 +75,16 @@ This project follows a microservices architecture, with different services for d
 - **ImageKit:** For image management.
 - **Jest:** For testing.
 
+## Future Enhancements
+
+- [ ] **Cart Service:** Implement a dedicated service for managing user shopping carts.
+- [ ] **Order Service:** Develop a service to handle order creation, processing, and tracking.
+- [ ] **Payment Service:** Integrate with payment gateways for secure transactions.
+- [ ] **AI Bot Service:** Create an AI-powered chatbot for customer support or product recommendations.
+- [ ] **Notification Service:** Implement a service for sending notifications (email, SMS, push).
+- [ ] **RabbitMQ Integration:** Integrate RabbitMQ for asynchronous communication between microservices.
+- [ ] **AWS Deployment:** Plan and implement deployment to Amazon Web Services (AWS).
+
 ## Contributing
 
 Contributions are welcome! Please feel free to open an issue or submit a pull request.
