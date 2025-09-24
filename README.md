@@ -61,11 +61,11 @@ graph TD
     B --> F
     B --> G
 
-    C -- REST API --> B
-    D -- REST API --> B
-    E -- REST API --> B
-    F -- REST API --> B
-    G -- REST API --> B
+    C -- "REST API" --> B
+    D -- "REST API" --> B
+    E -- "REST API" --> B
+    F -- "REST API" --> B
+    G -- "REST API" --> B
 
     C --- I
     D --- J
