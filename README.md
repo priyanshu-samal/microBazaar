@@ -23,6 +23,146 @@ Initially, services communicate directly via RESTful APIs. However, our roadmap 
 
 -   **AWS Cloud Hosting:** Each microservice will find its home on **Amazon Web Services (AWS)**. We envision deploying these services independently across various AWS compute options (e.g., EC2, ECS, Lambda), leveraging AWS's robust infrastructure for high availability, scalability, and global reach. Each service will be a separate entity in the cloud, connecting securely to form the complete microBazaar platform.
 
+## 📊 Architecture and Flow Diagrams
+
+### High-Level Architecture
+
+```mermaid
+graph TD
+    subgraph "User"
+        A[Client Browser/App]
+    end
+
+    subgraph "API Gateway (Future)"
+        B[API Gateway]
+    end
+
+    subgraph "Microservices"
+        C[Auth Service]
+        D[Product Service]
+        E[Cart Service (Future)]
+        F[Order Service (Future)]
+        G[AI Bot (Future)]
+    end
+
+    subgraph "Message Broker"
+        H[RabbitMQ (Future)]
+    end
+
+    subgraph "Databases"
+        I[Auth DB (MongoDB)]
+        J[Product DB (MongoDB)]
+    end
+
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+    B --> G
+
+    C -- REST API --> B
+    D -- REST API --> B
+    E -- REST API --> B
+    F -- REST API --> B
+    G -- REST API --> B
+
+    C --- I
+    D --- J
+
+    C -.-> H
+    D -.-> H
+    E -.-> H
+    F -.-> H
+    G -.-> H
+
+    H -.-> C
+    H -.-> D
+    H -.-> E
+    H -.-> F
+    H -.-> G
+```
+
+### User Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Auth_Service
+    participant Auth_DB
+
+    Client->>Auth_Service: POST /api/auth/register (email, password)
+    Auth_Service->>Auth_DB: Check if user exists
+    alt User does not exist
+        Auth_Service->>Auth_DB: Save new user with hashed password
+        Auth_Service-->>Client: 201 Created {user, token}
+    else User exists
+        Auth_Service-->>Client: 400 Bad Request (User already exists)
+    end
+
+    Client->>Auth_Service: POST /api/auth/login (email, password)
+    Auth_Service->>Auth_DB: Find user by email
+    alt User found
+        Auth_Service->>Auth_Service: Compare password with hashed password
+        alt Password matches
+            Auth_Service->>Auth_Service: Generate JWT Token
+            Auth_Service-->>Client: 200 OK {token}
+        else Password does not match
+            Auth_Service-->>Client: 401 Unauthorized (Invalid credentials)
+        end
+    else User not found
+        Auth_Service-->>Client: 401 Unauthorized (Invalid credentials)
+    end
+```
+
+### New Product Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Product_Service
+    participant Auth_Middleware
+    participant ImageKit_Service
+    participant Product_DB
+
+    Client->>Product_Service: POST /api/products (product data, image file) with Auth Token
+    Product_Service->>Auth_Middleware: Verify Token
+    Auth_Middleware-->>Product_Service: Token Valid (user info)
+
+    Product_Service->>ImageKit_Service: Upload image
+    ImageKit_Service-->>Product_Service: Image URL and ID
+
+    Product_Service->>Product_DB: Create new product with image URL
+    Product_DB-->>Product_Service: Saved Product
+
+    Product_Service-->>Client: 201 Created {product}
+```
+
+### Asynchronous Communication with RabbitMQ (Example: Order Creation)
+
+```mermaid
+graph TD
+    subgraph "Order Service (Future)"
+        A[1. Create Order] --> B{Publish 'order.created' event};
+    end
+
+    subgraph "RabbitMQ"
+        C(Exchange: 'orders_exchange')
+    end
+
+    subgraph "Notification Service (Future)"
+        D[Queue: 'notifications_queue'] --> E[2. Consume event & Send Email/SMS];
+    end
+
+    subgraph "Inventory Service (Future)"
+        F[Queue: 'inventory_queue'] --> G[3. Consume event & Update Stock];
+    end
+
+    B -- 'order.created' --> C;
+    C -- Routing Key: 'order.created' --> D;
+    C -- Routing Key: 'order.created' --> F;
+```
+
 ## 🌟 Current Services Spotlight
 
 Here are the foundational services currently powering microBazaar:
