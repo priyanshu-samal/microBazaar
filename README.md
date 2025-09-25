@@ -30,32 +30,32 @@ Initially, services communicate directly via RESTful APIs. However, our roadmap 
 ```mermaid
 graph TD
     subgraph User
-        A[Client Browser/App]
+        A["Client Browser/App"]
     end
 
     subgraph "API Gateway (Future)"
-        B(API Gateway)
+        B("API Gateway")
     end
 
     subgraph "Implemented Services"
-        C(🔐 Auth Service)
-        D(🛍️ Product Service)
-        E(🛒 Cart Service)
+        C("Auth Service")
+        D("Product Service")
+        E("Cart Service")
     end
     
     subgraph "Future Services"
-        F(📦 Order Service)
-        G(🤖 AI Bot)
+        F("Order Service")
+        G("AI Bot")
     end
 
     subgraph "Databases"
-        I[Auth DB (MongoDB)]
-        J[Product DB (MongoDB)]
-        K[Cart DB (MongoDB)]
+        I["Auth DB (MongoDB)"]
+        J["Product DB (MongoDB)"]
+        K["Cart DB (MongoDB)"]
     end
     
     subgraph "Message Broker (Future)"
-        H(RabbitMQ)
+        H("RabbitMQ")
     end
 
     A --> B
