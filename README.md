@@ -41,10 +41,10 @@ graph TD
         C("Auth Service")
         D("Product Service")
         E("Cart Service")
+        F("Order Service")
     end
     
     subgraph "Future Services"
-        F("Order Service")
         G("AI Bot")
     end
 
@@ -52,6 +52,7 @@ graph TD
         I["Auth DB (MongoDB)"]
         J["Product DB (MongoDB)"]
         K["Cart DB (MongoDB)"]
+        L["Order DB (MongoDB)"]
     end
     
     subgraph "Message Broker (Future)"
@@ -69,6 +70,7 @@ graph TD
     C --> I
     D --> J
     E --> K
+    F --> L
 
     C -.-> H
     D -.-> H
@@ -166,7 +168,7 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    subgraph "Order Service (Future)"
+    subgraph "Order Service"
         A[1. Create Order] --> B{Publish 'order.created' event};
     end
 
@@ -242,12 +244,24 @@ Here are the foundational services currently powering microBazaar:
 | PATCH  | `/api/cart/items/:productId` | Update a cart item's quantity | Yes (User)           |
 | DELETE | `/api/cart/items/:productId` | Remove an item from the cart | Yes (User)           |
 
+### 📦 Order Service
+
+-   **Port:** `3003`
+-   **Description:** This service is responsible for managing orders. It orchestrates the order creation process by communicating with the Cart and Product services to build a new order.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `axios`.
+
+#### API Endpoints
+
+| Method | Endpoint       | Description                               | Auth Required (Role) |
+| :----- | :------------- | :---------------------------------------- | :------------------- |
+| POST   | `/api/orders`  | Create a new order from the user's cart   | Yes (User)           |
+
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
 Our journey has just begun! Here's a sneak peek at the exciting features and architectural enhancements we're planning:
 
 -   [x] **Cart Service:** A dedicated service to manage user shopping carts, allowing seamless adding, removing, and updating of items.
--   [ ] **Order Service:** The brain behind transactions, handling order creation, processing, status updates, and history.
+-   [x] **Order Service:** The brain behind transactions, handling order creation, processing, status updates, and history.
 -   [ ] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
 -   [ ] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
 -   [ ] **Notification Service:** Keep users informed with real-time updates via email, SMS, or push notifications.
@@ -265,7 +279,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
     ```
 2.  **Navigate to a service directory:**
     ```bash
-    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart
+    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order
     ```
 3.  **Install dependencies:**
     ```bash
