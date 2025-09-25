@@ -29,26 +29,33 @@ Initially, services communicate directly via RESTful APIs. However, our roadmap 
 
 ```mermaid
 graph TD
-    subgraph "User Facing"
+    subgraph User
         A[Client Browser/App]
     end
 
-    subgraph "Infrastructure"
+    subgraph "API Gateway (Future)"
         B(API Gateway)
-        H(RabbitMQ)
     end
 
-    subgraph "Services"
-        C(Auth Service)
-        D(Product Service)
-        E(Cart Service)
-        F(Order Service)
-        G(AI Bot)
+    subgraph "Implemented Services"
+        C(🔐 Auth Service)
+        D(🛍️ Product Service)
+        E(🛒 Cart Service)
+    end
+    
+    subgraph "Future Services"
+        F(📦 Order Service)
+        G(🤖 AI Bot)
     end
 
     subgraph "Databases"
-        I[Auth DB]
-        J[Product DB]
+        I[Auth DB (MongoDB)]
+        J[Product DB (MongoDB)]
+        K[Cart DB (MongoDB)]
+    end
+    
+    subgraph "Message Broker (Future)"
+        H(RabbitMQ)
     end
 
     A --> B
@@ -61,16 +68,13 @@ graph TD
 
     C --> I
     D --> J
+    E --> K
 
     C -.-> H
     D -.-> H
     E -.-> H
     F -.-> H
-
-    H -.-> C
-    H -.-> D
-    H -.-> E
-    H -.-> F
+    G -.-> H
 ```
 
 ### User Authentication Flow
@@ -132,6 +136,30 @@ sequenceDiagram
     Product_DB-->>Product_Service: Saved Product
 
     Product_Service-->>Client: 201 Created {product}
+```
+
+### Cart Management Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Cart_Service
+    participant Auth_Middleware
+    participant Cart_DB
+
+    Client->>Cart_Service: POST /api/cart/items (productId, quantity) with Auth Token
+    Cart_Service->>Auth_Middleware: Verify Token
+    Auth_Middleware-->>Cart_Service: Token Valid (user info)
+    Cart_Service->>Cart_DB: Add/Update item in user's cart
+    Cart_DB-->>Cart_Service: Updated Cart
+    Cart_Service-->>Client: 200 OK {cart}
+
+    Client->>Cart_Service: GET /api/cart with Auth Token
+    Cart_Service->>Auth_Middleware: Verify Token
+    Auth_Middleware-->>Cart_Service: Token Valid (user info)
+    Cart_Service->>Cart_DB: Get user's cart
+    Cart_DB-->>Cart_Service: Cart
+    Cart_Service-->>Client: 200 OK {cart}
 ```
 
 ### Asynchronous Communication with RabbitMQ (Example: Order Creation)
@@ -199,11 +227,26 @@ Here are the foundational services currently powering microBazaar:
 | DELETE | `/api/products/:id`     | Delete a product                 | Yes (Seller)         |
 | GET    | `/api/products/seller`  | Get all products for a seller    | Yes (Seller)         |
 
+### 🛒 Cart Service
+
+-   **Port:** `3002`
+-   **Description:** Your shopping companion! This service manages user shopping carts, allowing for items to be added, updated, and removed seamlessly.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `JWT`.
+
+#### API Endpoints
+
+| Method | Endpoint                  | Description                | Auth Required (Role) |
+| :----- | :------------------------ | :------------------------- | :------------------- |
+| GET    | `/api/cart`               | Get the user's cart        | Yes (User)           |
+| POST   | `/api/cart/items`         | Add an item to the cart    | Yes (User)           |
+| PATCH  | `/api/cart/items/:productId` | Update a cart item's quantity | Yes (User)           |
+| DELETE | `/api/cart/items/:productId` | Remove an item from the cart | Yes (User)           |
+
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
 Our journey has just begun! Here's a sneak peek at the exciting features and architectural enhancements we're planning:
 
--   [ ] **Cart Service:** A dedicated service to manage user shopping carts, allowing seamless adding, removing, and updating of items.
+-   [x] **Cart Service:** A dedicated service to manage user shopping carts, allowing seamless adding, removing, and updating of items.
 -   [ ] **Order Service:** The brain behind transactions, handling order creation, processing, status updates, and history.
 -   [ ] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
 -   [ ] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
@@ -222,7 +265,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
     ```
 2.  **Navigate to a service directory:**
     ```bash
-    cd microBazaar/auth  # or microBazaar/product
+    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart
     ```
 3.  **Install dependencies:**
     ```bash
