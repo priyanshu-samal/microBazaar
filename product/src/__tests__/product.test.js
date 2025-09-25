@@ -47,6 +47,19 @@ describe('Product API', () => {
     expect(response.body.title).toBe('Test Product');
   });
 
+  it('should create a new product with a specific stock quantity', async () => {
+    const response = await supertest(app)
+      .post('/api/products')
+      .field('title', 'Test Product with Stock')
+      .field('description', 'Test Description')
+      .field('priceAmount', '100')
+      .field('priceCurrency', 'INR')
+      .field('stock', '10');
+
+    expect(response.status).toBe(201);
+    expect(response.body.stock).toBe(10);
+  });
+
   it('should not allow a customer to create a product', async () => {
     mockUser.role = 'customer';
 
@@ -134,6 +147,26 @@ describe('Product API', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.title).toBe('Updated Title');
+    });
+
+    it('should allow a seller to update the stock of their own product', async () => {
+      const product = await Product.create({
+        title: 'Test Product',
+        description: 'Test Description',
+        price: {
+          amount: 100,
+          currency: 'INR'
+        },
+        seller: new mongoose.Types.ObjectId(mockUser.id),
+        stock: 5
+      });
+
+      const response = await supertest(app)
+        .patch(`/api/products/${product._id}`)
+        .send({ stock: 15 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.stock).toBe(15);
     });
 
     it('should not allow a seller to update a product they do not own', async () => {

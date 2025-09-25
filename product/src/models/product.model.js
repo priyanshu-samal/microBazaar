@@ -32,7 +32,11 @@ const productSchema = new mongoose.Schema({
         thumbnail: String,
         id: String,
     }
-  ]
+  ],
+  stock:{
+    type: Number,
+    default: 0,
+  }
 });
 
 productSchema.index({ title: 'text', description: 'text' });

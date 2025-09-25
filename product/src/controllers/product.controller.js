@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 const createProduct = async (req, res) => {
   try {
-    const { title, description, priceAmount, priceCurrency } = req.body;
+    const { title, description, priceAmount, priceCurrency, stock } = req.body;
     
 
     
@@ -28,6 +28,7 @@ const createProduct = async (req, res) => {
       price,
       images: images,
       seller,
+      stock,
     });
 
     await product.save();
@@ -90,7 +91,7 @@ async function updateProduct(req, res) {
     if(!product){
       return res.status(404).json({ message: 'Product not found or you are not authorized to update this product' }); 
     }
-    const allowedUpdates=['title','description','price'];
+    const allowedUpdates=['title','description','price','stock'];
     for (const key of Object.keys(req.body)){
       if(allowedUpdates.includes(key)){
         if(key==='price' && typeof req.body[key] === 'object'){
