@@ -29,72 +29,48 @@ Initially, services communicate directly via RESTful APIs. However, our roadmap 
 
 ```mermaid
 graph TD
-    %% Node Definitions
-    A[Client Browser/App]
-    B[API Gateway]
-    C[Auth Service]
-    D[Product Service]
-    E[Cart Service (Future)]
-    F[Order Service (Future)]
-    G[AI Bot (Future)]
-    H[RabbitMQ (Future)]
-    I[Auth DB (MongoDB)]
-    J[Product DB (MongoDB)]
-
-    %% Subgraphs
-    subgraph User
-        A
+    subgraph "User Facing"
+        A[Client Browser/App]
     end
 
-    subgraph "API Gateway (Future)"
-        B
+    subgraph "Infrastructure"
+        B(API Gateway)
+        H(RabbitMQ)
     end
 
-    subgraph Microservices
-        C
-        D
-        E
-        F
-        G
+    subgraph "Services"
+        C(Auth Service)
+        D(Product Service)
+        E(Cart Service)
+        F(Order Service)
+        G(AI Bot)
     end
 
-    subgraph "Message Broker"
-        H
+    subgraph "Databases"
+        I[Auth DB]
+        J[Product DB]
     end
 
-    subgraph Databases
-        I
-        J
-    end
-
-    %% Links
     A --> B
+
     B --> C
     B --> D
     B --> E
     B --> F
     B --> G
 
-    C -- "REST API" --> B
-    D -- "REST API" --> B
-    E -- "REST API" --> B
-    F -- "REST API" --> B
-    G -- "REST API" --> B
-
-    C --- I
-    D --- J
+    C --> I
+    D --> J
 
     C -.-> H
     D -.-> H
     E -.-> H
     F -.-> H
-    G -.-> H
 
     H -.-> C
     H -.-> D
     H -.-> E
     H -.-> F
-    H -.-> G
 ```
 
 ### User Authentication Flow
