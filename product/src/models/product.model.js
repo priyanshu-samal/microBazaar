@@ -10,6 +10,7 @@ const productSchema = new mongoose.Schema({
     amount:{
         type: Number,
         required: true,
+        min: 0
     },
     currency:{
         type: String,
@@ -33,6 +34,8 @@ const productSchema = new mongoose.Schema({
     }
   ]
 });
+
+productSchema.index({ title: 'text', description: 'text' });
 
 
 module.exports = mongoose.model('product', productSchema);

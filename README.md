@@ -127,6 +127,12 @@ sequenceDiagram
     else User not found
         Auth_Service-->>Client: 401 Unauthorized (Invalid credentials)
     end
+    
+    Client->>Auth_Service: GET /api/auth/me (with token)
+    Auth_Service-->>Client: 200 OK {user}
+
+    Client->>Auth_Service: GET /api/auth/logout
+    Auth_Service-->>Client: 200 OK {message}
 ```
 
 ### New Product Flow
@@ -187,11 +193,35 @@ Here are the foundational services currently powering microBazaar:
 -   **Description:** The gatekeeper of microBazaar! This service is responsible for all things user authentication – from secure registration and login to generating and validating access tokens. It ensures that only legitimate users can access protected resources.
 -   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `JWT`, `bcryptjs`, `ioredis` (for session/token management).
 
+#### API Endpoints
+
+| Method | Endpoint                       | Description                      | Auth Required |
+| :----- | :----------------------------- | :------------------------------- | :------------ |
+| POST   | `/api/auth/register`           | Register a new user              | No            |
+| POST   | `/api/auth/login`              | Login a user                     | No            |
+| GET    | `/api/auth/me`                 | Get current user details         | Yes           |
+| GET    | `/api/auth/logout`             | Logout the current user          | No            |
+| POST   | `/api/auth/users/me/addresses` | Add a new address for the user   | Yes           |
+| GET    | `/api/auth/users/me/addresses` | Get all addresses for the user   | Yes           |
+| DELETE | `/api/auth/users/me/addresses/:addressId` | Delete a user's address | Yes           |
+
+
 ### 🛍️ Product Service
 
 -   **Port:** `3001`
 -   **Description:** The heart of our catalog! This service meticulously manages all product-related operations. It handles creating new products, retrieving product details, updating inventory information, and even managing product images with `ImageKit`.
 -   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `ImageKit`, `Multer` (for file uploads).
+
+#### API Endpoints
+
+| Method | Endpoint                | Description                      | Auth Required (Role) |
+| :----- | :---------------------- | :------------------------------- | :------------------- |
+| POST   | `/api/products`         | Create a new product             | Yes (Admin, Seller)  |
+| GET    | `/api/products`         | Get a list of all products       | No                   |
+| GET    | `/api/products/:id`     | Get a single product by ID       | No                   |
+| PATCH  | `/api/products/:id`     | Update a product                 | Yes (Seller)         |
+| DELETE | `/api/products/:id`     | Delete a product                 | Yes (Seller)         |
+| GET    | `/api/products/seller`  | Get all products for a seller    | Yes (Seller)         |
 
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
