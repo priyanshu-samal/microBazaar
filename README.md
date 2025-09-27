@@ -136,6 +136,57 @@ sequenceDiagram
     Cart_Service-->>Client: 200 OK {cart}
 ```
 
+### Order Creation Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Order_Service
+    participant Cart_Service
+    participant Product_Service
+    participant Order_DB
+
+    Client->>Order_Service: POST /api/orders
+    Order_Service->>Cart_Service: GET /api/cart
+    Cart_Service-->>Order_Service: Cart items
+    loop for each cart item
+        Order_Service->>Product_Service: GET /api/products/:productId
+        Product_Service-->>Order_Service: Product details (price)
+    end
+    Order_Service->>Order_Service: Calculate total price
+    Order_Service->>Order_DB: Create new order
+    Order_DB-->>Order_Service: Saved Order
+    Order_Service-->>Client: 201 Created {order}
+```
+
+### Payment Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Payment_Service
+    participant Order_Service
+    participant Razorpay
+    participant Payment_DB
+
+    Client->>Payment_Service: POST /api/payment/create/:orderId
+    Payment_Service->>Order_Service: GET /api/orders/:orderId
+    Order_Service-->>Payment_Service: Order details (totalPrice)
+    Payment_Service->>Razorpay: Create Order
+    Razorpay-->>Payment_Service: Razorpay Order ID
+    Payment_Service->>Payment_DB: Create payment (status: PENDING)
+    Payment_Service-->>Client: { razorpayOrderId }
+
+    Client->>Razorpay: User completes payment
+    Razorpay-->>Client: { razorpay_payment_id, razorpay_order_id, razorpay_signature }
+
+    Client->>Payment_Service: POST /api/payment/verify
+    Payment_Service->>Razorpay: Verify signature
+    Razorpay-->>Payment_Service: Signature valid
+    Payment_Service->>Payment_DB: Update payment (status: SUCCESSFUL)
+    Payment_Service-->>Client: 200 OK {message: "Payment verified"}
+```
+
 ### Asynchronous Communication with RabbitMQ (Example: Order Creation)
 
 ```mermaid
