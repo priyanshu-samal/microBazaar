@@ -2,7 +2,7 @@
 
 Welcome to **microBazaar**! This project is an ambitious journey into building a scalable, resilient, and feature-rich e-commerce platform using a microservices architecture. We're crafting a digital marketplace where every component works harmoniously yet independently, ensuring a robust and dynamic user experience.
 
-## ✨ The MicroBazaar Vision: Why Microservices?
+## ✨ The microBazaar Vision: Why Microservices?
 
 Imagine an e-commerce platform that can grow limitlessly, where new features can be added without disrupting existing ones, and where a hiccup in one area doesn't bring down the entire store. That's the power of microservices, and that's the vision for microBazaar!
 
@@ -34,18 +34,21 @@ graph TD
     B --> D("Product Service");
     B --> E("Cart Service");
     B --> F("Order Service");
-    B --> G("AI Bot (Future)");
+    B --> G("Payment Service");
+    B --> H("AI Bot (Future)");
 
     C --> I["Auth DB (MongoDB)"];
     D --> J["Product DB (MongoDB)"];
     E --> K["Cart DB (MongoDB)"];
     F --> L["Order DB (MongoDB)"];
+    G --> M["Payment DB (MongoDB)"];
 
-    C -.-> H("RabbitMQ (Future)");
-    D -.-> H;
-    E -.-> H;
-    F -.-> H;
-    G -.-> H;
+    C -.-> N("RabbitMQ (Future)");
+    D -.-> N;
+    E -.-> N;
+    F -.-> N;
+    G -.-> N;
+    H -.-> N;
 ```
 
 ### User Authentication Flow
@@ -229,13 +232,27 @@ Here are the foundational services currently powering microBazaar:
 | POST | `/api/orders/:id/cancel` | Cancel an order | Yes (User) |
 | PATCH | `/api/orders/:id/address` | Update the shipping address for an order | Yes (User) |
 
+### 💳 Payment Service
+
+-   **Port:** `3004`
+-   **Description:** This service handles the payment process. It integrates with Razorpay to create and verify payments for orders.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `Razorpay`, `axios`.
+
+#### API Endpoints
+
+| Method | Endpoint | Description | Auth Required (Role) |
+| :--- | :--- | :--- | :--- |
+| POST | `/api/payment/create/:orderId` | Create a new payment for an order | Yes (User) |
+| POST | `/api/payment/verify` | Verify a payment | Yes (User) |
+
+
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
 Our journey has just begun! Here's a sneak peek at the exciting features and architectural enhancements we're planning:
 
 -   [x] **Cart Service:** A dedicated service to manage user shopping carts, allowing seamless adding, removing, and updating of items.
 -   [x] **Order Service:** The brain behind transactions, handling order creation, processing, status updates, and history.
--   [ ] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
+-   [x] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
 -   [ ] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
 -   [ ] **Notification Service:** Keep users informed with real-time updates via email, SMS, or push notifications.
 -   [ ] **RabbitMQ Integration:** Implement robust asynchronous communication patterns across all microservices.
@@ -252,7 +269,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
     ```
 2.  **Navigate to a service directory:**
     ```bash
-    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order
+    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order or microBazaar/payment
     ```
 3.  **Install dependencies:**
     ```bash
@@ -272,6 +289,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
 -   **Redis:** An in-memory data structure store, used for caching and session management.
 -   **JSON Web Tokens (JWT):** For secure and stateless authentication.
 -   **ImageKit:** For efficient image management, optimization, and delivery.
+-   **Razorpay:** Our payment processing partner.
 -   **Jest:** Our go-to testing framework for robust and reliable code.
 -   **RabbitMQ (Planned):** For inter-service communication and message queuing.
 -   **AWS (Planned):** Our cloud platform for scalable and resilient deployments.
