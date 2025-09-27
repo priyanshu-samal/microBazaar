@@ -29,54 +29,23 @@ Initially, services communicate directly via RESTful APIs. However, our roadmap 
 
 ```mermaid
 graph TD
-    subgraph User
-        A["Client Browser/App"]
-    end
+    A["Client Browser/App"] --> B("API Gateway (Future)");
+    B --> C("Auth Service");
+    B --> D("Product Service");
+    B --> E("Cart Service");
+    B --> F("Order Service");
+    B --> G("AI Bot (Future)");
 
-    subgraph "API Gateway (Future)"
-        B("API Gateway")
-    end
+    C --> I["Auth DB (MongoDB)"];
+    D --> J["Product DB (MongoDB)"];
+    E --> K["Cart DB (MongoDB)"];
+    F --> L["Order DB (MongoDB)"];
 
-    subgraph "Implemented Services"
-        C("Auth Service")
-        D("Product Service")
-        E("Cart Service")
-        F("Order Service")
-    end
-    
-    subgraph "Future Services"
-        G("AI Bot")
-    end
-
-    subgraph "Databases"
-        I["Auth DB (MongoDB)"]
-        J["Product DB (MongoDB)"]
-        K["Cart DB (MongoDB)"]
-        L["Order DB (MongoDB)"]
-    end
-    
-    subgraph "Message Broker (Future)"
-        H("RabbitMQ")
-    end
-
-    A --> B
-
-    B --> C
-    B --> D
-    B --> E
-    B --> F
-    B --> G
-
-    C --> I
-    D --> J
-    E --> K
-    F --> L
-
-    C -.-> H
-    D -.-> H
-    E -.-> H
-    F -.-> H
-    G -.-> H
+    C -.-> H("RabbitMQ (Future)");
+    D -.-> H;
+    E -.-> H;
+    F -.-> H;
+    G -.-> H;
 ```
 
 ### User Authentication Flow
@@ -252,9 +221,13 @@ Here are the foundational services currently powering microBazaar:
 
 #### API Endpoints
 
-| Method | Endpoint       | Description                               | Auth Required (Role) |
-| :----- | :------------- | :---------------------------------------- | :------------------- |
-| POST   | `/api/orders`  | Create a new order from the user's cart   | Yes (User)           |
+| Method | Endpoint | Description | Auth Required (Role) |
+| :--- | :--- | :--- | :--- |
+| POST | `/api/orders` | Create a new order from the user's cart | Yes (User) |
+| GET | `/api/orders/me` | Get all orders for the current user | Yes (User) |
+| GET | `/api/orders/:id` | Get a specific order by ID | Yes (User, Admin) |
+| POST | `/api/orders/:id/cancel` | Cancel an order | Yes (User) |
+| PATCH | `/api/orders/:id/address` | Update the shipping address for an order | Yes (User) |
 
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 

@@ -1,4 +1,5 @@
 const cartmodel=require("../models/cart.model");
+const axios = require('axios');
 
 async function addItemToCart(req,res){
     try {
@@ -10,11 +11,17 @@ async function addItemToCart(req,res){
       if(!cart){
         cart=new cartmodel({user:user.id, items:[]});
       }
+      const productResponse = await axios.get(`http://127.0.0.1:3001/api/products/${productId}`);
+      const product = productResponse.data;
+      const stockAvailable = Number(product.stock) || 0;
+
       const existingItemIndex=cart.items.findIndex(item=>item.productId.toString()===productId);
       if(existingItemIndex>=0){
-        cart.items[existingItemIndex].quantity+=qty;
+        const proposedQuantity = cart.items[existingItemIndex].quantity + qty;
+        cart.items[existingItemIndex].quantity = Math.min(proposedQuantity, stockAvailable);
       }else{
-        cart.items.push({productId, quantity: qty});
+        const quantityToAdd = Math.min(qty, stockAvailable);
+        cart.items.push({productId, quantity: quantityToAdd});
       }
       await cart.save();
       res.status(201).json(cart);
@@ -42,7 +49,11 @@ async function updateCartItem(req, res) {
             return res.status(404).json({ error: "Item not found in cart" });
         }
 
-        cart.items[itemIndex].quantity = qty;
+        const productResponse = await axios.get(`http://127.0.0.1:3001/api/products/${productId}`);
+        const product = productResponse.data;
+        const stockAvailable = Number(product.stock) || 0;
+
+        cart.items[itemIndex].quantity = Math.min(qty, stockAvailable);
         await cart.save();
 
         res.status(200).json(cart);

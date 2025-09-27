@@ -8,7 +8,8 @@ function createAuthMiddleware(roles=["user"]) {
             if (!token) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const secret = process.env.JWT_SECRET || 'test_secret';
+            const decoded = jwt.verify(token, secret);
             if (!roles.includes(decoded.role)) {        
                 return res.status(403).json({ message: 'Forbidden' });
             }
