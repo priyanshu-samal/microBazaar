@@ -29,26 +29,56 @@ Initially, services communicate directly via RESTful APIs. However, our roadmap 
 
 ```mermaid
 graph TD
-    A["Client Browser/App"] --> B("API Gateway (Future)");
-    B --> C("Auth Service");
-    B --> D("Product Service");
-    B --> E("Cart Service");
-    B --> F("Order Service");
-    B --> G("Payment Service");
-    B --> H("AI Bot (Future)");
+    subgraph User
+        A[Client Browser/App]
+    end
 
-    C --> I["Auth DB (MongoDB)"];
-    D --> J["Product DB (MongoDB)"];
-    E --> K["Cart DB (MongoDB)"];
-    F --> L["Order DB (MongoDB)"];
-    G --> M["Payment DB (MongoDB)"];
+    subgraph "API Gateway (Future)"
+        B[API Gateway]
+    end
 
-    C -.-> N("RabbitMQ (Future)");
-    D -.-> N;
-    E -.-> N;
-    F -.-> N;
-    G -.-> N;
-    H -.-> N;
+    subgraph Microservices
+        C[Auth Service]
+        D[Product Service]
+        E[Cart Service]
+        F[Order Service]
+        G[Payment Service]
+        H[AI Buddy Service]
+    end
+
+    subgraph Databases
+        I[Auth DB (MongoDB)]
+        J[Product DB (MongoDB)]
+        K[Cart DB (MongoDB)]
+        L[Order DB (MongoDB)]
+        M[Payment DB (MongoDB)]
+    end
+
+    subgraph "Message Broker (Future)"
+        N[RabbitMQ]
+    end
+
+    A --> B
+
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+    B --> G
+    B --> H
+
+    C --- I
+    D --- J
+    E --- K
+    F --- L
+    G --- M
+
+    C -.-> N
+    D -.-> N
+    E -.-> N
+    F -.-> N
+    G -.-> N
+    H -.-> N
 ```
 
 ### User Authentication Flow
@@ -187,6 +217,22 @@ sequenceDiagram
     Payment_Service-->>Client: 200 OK {message: "Payment verified"}
 ```
 
+### AI Buddy Socket Connection Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AI_Buddy_Service
+    
+    Client->>AI_Buddy_Service: Connect with JWT in cookie
+    AI_Buddy_Service->>AI_Buddy_Service: Verify JWT
+    alt JWT is valid
+        AI_Buddy_Service-->>Client: Connection successful
+    else JWT is invalid
+        AI_Buddy_Service-->>Client: Authentication error
+    end
+```
+
 ### Asynchronous Communication with RabbitMQ (Example: Order Creation)
 
 ```mermaid
@@ -296,6 +342,11 @@ Here are the foundational services currently powering microBazaar:
 | POST | `/api/payment/create/:orderId` | Create a new payment for an order | Yes (User) |
 | POST | `/api/payment/verify` | Verify a payment | Yes (User) |
 
+### 🤖 AI Buddy Service
+
+-   **Port:** `3005`
+-   **Description:** Your intelligent shopping assistant! This service provides real-time support and recommendations to users via a WebSocket connection. It uses `socket.io` for fast, bidirectional communication.
+-   **Key Technologies:** `Node.js`, `Express`, `socket.io`, `JWT`.
 
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
@@ -304,7 +355,7 @@ Our journey has just begun! Here's a sneak peek at the exciting features and arc
 -   [x] **Cart Service:** A dedicated service to manage user shopping carts, allowing seamless adding, removing, and updating of items.
 -   [x] **Order Service:** The brain behind transactions, handling order creation, processing, status updates, and history.
 -   [x] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
--   [ ] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
+-   [x] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
 -   [ ] **Notification Service:** Keep users informed with real-time updates via email, SMS, or push notifications.
 -   [ ] **RabbitMQ Integration:** Implement robust asynchronous communication patterns across all microservices.
 -   [ ] **AWS Deployment:** Strategically deploy each microservice to AWS, optimizing for performance, cost, and reliability.
@@ -320,7 +371,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
     ```
 2.  **Navigate to a service directory:**
     ```bash
-    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order or microBazaar/payment
+    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order or microBazaar/payment or microBazaar/ai-buddy
     ```
 3.  **Install dependencies:**
     ```bash
@@ -341,6 +392,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
 -   **JSON Web Tokens (JWT):** For secure and stateless authentication.
 -   **ImageKit:** For efficient image management, optimization, and delivery.
 -   **Razorpay:** Our payment processing partner.
+-   **socket.io:** For real-time, bidirectional and event-based communication.
 -   **Jest:** Our go-to testing framework for robust and reliable code.
 -   **RabbitMQ (Planned):** For inter-service communication and message queuing.
 -   **AWS (Planned):** Our cloud platform for scalable and resilient deployments.
