@@ -47,11 +47,11 @@ graph TD
     end
 
     subgraph Databases
-        I[Auth DB]
-        J[Product DB]
-        K[Cart DB]
-        L[Order DB]
-        M[Payment DB]
+        I["Auth DB (MongoDB)"]
+        J["Product DB (MongoDB)"]
+        K["Cart DB (MongoDB)"]
+        L["Order DB (MongoDB)"]
+        M["Payment DB (MongoDB)"]
     end
 
     subgraph "Message Broker (Future)"
