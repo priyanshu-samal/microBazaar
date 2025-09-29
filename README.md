@@ -44,6 +44,7 @@ graph TD
         F[Order Service]
         G[Payment Service]
         H[AI Buddy Service]
+        O[Notification Service]
     end
 
     subgraph Databases
@@ -52,9 +53,10 @@ graph TD
         K["Cart DB (MongoDB)"]
         L["Order DB (MongoDB)"]
         M["Payment DB (MongoDB)"]
+        P["Notification DB (MongoDB)"]
     end
 
-    subgraph "Message Broker (Future)"
+    subgraph "Message Broker"
         N[RabbitMQ]
     end
 
@@ -72,6 +74,7 @@ graph TD
     E --- K
     F --- L
     G --- M
+    O --- P
 
     C -.-> N
     D -.-> N
@@ -79,6 +82,7 @@ graph TD
     F -.-> N
     G -.-> N
     H -.-> N
+    N -.-> O
 ```
 
 ### User Authentication Flow
@@ -348,6 +352,12 @@ Here are the foundational services currently powering microBazaar:
 -   **Description:** Your intelligent shopping assistant! This service provides real-time support and recommendations to users via a WebSocket connection. It uses `socket.io` for fast, bidirectional communication.
 -   **Key Technologies:** `Node.js`, `Express`, `socket.io`, `JWT`.
 
+### 🔔 Notification Service
+
+-   **Port:** `3006`
+-   **Description:** This service works behind the scenes to keep users informed. It listens for events from other services (like `order.created`) via RabbitMQ and sends out notifications, such as emails, to the user. It's a vital part of our event-driven architecture.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `amqplib` (for RabbitMQ), `nodemailer`.
+
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
 Our journey has just begun! Here's a sneak peek at the exciting features and architectural enhancements we're planning:
@@ -356,7 +366,7 @@ Our journey has just begun! Here's a sneak peek at the exciting features and arc
 -   [x] **Order Service:** The brain behind transactions, handling order creation, processing, status updates, and history.
 -   [x] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
 -   [x] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
--   [ ] **Notification Service:** Keep users informed with real-time updates via email, SMS, or push notifications.
+-   [x] **Notification Service:** Keep users informed with real-time updates via email, SMS, or push notifications.
 -   [ ] **RabbitMQ Integration:** Implement robust asynchronous communication patterns across all microservices.
 -   [ ] **AWS Deployment:** Strategically deploy each microservice to AWS, optimizing for performance, cost, and reliability.
 -   [ ] **Frontend Application:** Develop a captivating user interface to bring microBazaar to life!
@@ -371,7 +381,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
     ```
 2.  **Navigate to a service directory:**
     ```bash
-    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order or microBazaar/payment or microBazaar/ai-buddy
+    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order or microBazaar/payment or microBazaar/ai-buddy or microBazaar/notification
     ```
 3.  **Install dependencies:**
     ```bash
@@ -394,7 +404,9 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
 -   **Razorpay:** Our payment processing partner.
 -   **socket.io:** For real-time, bidirectional and event-based communication.
 -   **Jest:** Our go-to testing framework for robust and reliable code.
--   **RabbitMQ (Planned):** For inter-service communication and message queuing.
+-   **RabbitMQ:** For inter-service communication and message queuing.
+-   **amqplib:** A comprehensive, fully-featured RabbitMQ client for Node.js.
+-   **nodemailer:** A module for Node.js applications to allow easy as cake email sending.
 -   **AWS (Planned):** Our cloud platform for scalable and resilient deployments.
 
 ## 👋 Contributing: Be a Part of microBazaar!

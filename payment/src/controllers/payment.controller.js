@@ -1,7 +1,7 @@
 const paymentModel=require("../models/payment.model");
 const axios=require("axios");
 const { response } = require("express");
-
+const { publishToQueue } = require("../broker/broker")
 
 const Razorpay = require('razorpay');
 
@@ -76,6 +76,22 @@ async function verifyPayment(req,res){
         payment.signature=signature;
         payment.status='SUCCESSFUL';
         await payment.save();
+
+        await publishToQueue("PAYMENT_NOTIFICATION.PAYMENT_COMPLETED",
+            {
+                email: req.user.email,
+                orderId: payment.order,
+                paymentId: payment.paymentId,
+                amount: payment.price.amount / 100,
+                currency: payment.price.currency,
+                fullName: req.user.fullName
+            }
+        )
+
+
+        await publishToQueue("PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED", payment)
+
+        res.status(200).json({ message: 'Payment verified successfully', payment });
 
 
         response.status(200).json({message:'Payment verified',payment});
