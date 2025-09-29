@@ -17,9 +17,9 @@ We're breaking down the traditional monolithic application into smaller, managea
 
 microBazaar is designed as a constellation of specialized services, each handling a distinct domain of the e-commerce ecosystem. Think of it as a bustling marketplace where different shops (microservices) specialize in their craft, yet work together to serve the customer.
 
-Initially, services communicate directly via RESTful APIs. However, our roadmap includes a powerful upgrade:
+Initially, services communicate directly via RESTful APIs. However, the architecture is evolving to an event-driven model for more robust, scalable, and decoupled communication.
 
--   **RabbitMQ for Asynchronous Communication:** To ensure seamless, decoupled, and fault-tolerant communication, we'll be integrating **RabbitMQ**. This message broker will act as the central nervous system, allowing services to communicate asynchronously through events and messages. For example, when a user places an order, the `Order Service` can publish an event to RabbitMQ, and the `Inventory Service` (future) can subscribe to it to update stock, without direct dependencies.
+-   **Asynchronous Communication with CloudAMQP:** To ensure seamless and fault-tolerant communication, we use **CloudAMQP**, a managed RabbitMQ message broker. This acts as the central nervous system, allowing services to communicate asynchronously. For example, when a user registers, the `Auth Service` publishes a `USER_CREATED` event, and the `Notification Service` consumes this event to send a welcome email, all without the services being directly dependent on each other. The connection is configured via a `RABBIT_URL` environment variable.
 
 -   **AWS Cloud Hosting:** Each microservice will find its home on **Amazon Web Services (AWS)**. We envision deploying these services independently across various AWS compute options (e.g., EC2, ECS, Lambda), leveraging AWS's robust infrastructure for high availability, scalability, and global reach. Each service will be a separate entity in the cloud, connecting securely to form the complete microBazaar platform.
 
@@ -45,6 +45,7 @@ graph TD
         G[Payment Service]
         H[AI Buddy Service]
         O[Notification Service]
+        S[Seller Dashboard Service]
     end
 
     subgraph Databases
@@ -59,6 +60,10 @@ graph TD
     subgraph "Message Broker"
         N[RabbitMQ]
     end
+    
+    subgraph "Image Storage"
+        IK[ImageKit]
+    end
 
     A --> B
 
@@ -68,6 +73,7 @@ graph TD
     B --> F
     B --> G
     B --> H
+    B --> S
 
     C --- I
     D --- J
@@ -75,14 +81,25 @@ graph TD
     F --- L
     G --- M
     O --- P
+    
+    D -- "CRUD" --> IK
 
-    C -.-> N
-    D -.-> N
-    E -.-> N
-    F -.-> N
-    G -.-> N
-    H -.-> N
-    N -.-> O
+    C -- "AUTH_NOTIFICATION.USER_CREATED" --> N
+    C -- "AUTH_SELLER_DASHBOARD.USER_CREATED" --> N
+    
+    G -- "PAYMENT_NOTIFICATION.PAYMENT_COMPLETED" --> N
+    G -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED" --> N
+    
+    N -- "AUTH_NOTIFICATION.USER_CREATED" --> O
+    N -- "PAYMENT_NOTIFICATION.PAYMENT_COMPLETED" --> O
+    
+    N -- "AUTH_SELLER_DASHBOARD.USER_CREATED" --> S
+    N -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED" --> S
+    
+    F -- "HTTP GET" --> D
+    E -- "HTTP GET" --> D
+    G -- "HTTP GET" --> F
+
 ```
 
 ### User Authentication Flow
@@ -92,11 +109,19 @@ sequenceDiagram
     participant Client
     participant Auth_Service
     participant Auth_DB
+    participant RabbitMQ
+    participant Notification_Service
+    participant Seller_Dashboard_Service
 
     Client->>Auth_Service: POST /api/auth/register (email, password)
     Auth_Service->>Auth_DB: Check if user exists
     alt User does not exist
         Auth_Service->>Auth_DB: Save new user with hashed password
+        Auth_Service->>RabbitMQ: Publish 'AUTH_NOTIFICATION.USER_CREATED'
+        Auth_Service->>RabbitMQ: Publish 'AUTH_SELLER_DASHBOARD.USER_CREATED'
+        RabbitMQ-->>Notification_Service: Consume 'AUTH_NOTIFICATION.USER_CREATED'
+        Notification_Service-->>Notification_Service: Send Welcome Email
+        RabbitMQ-->>Seller_Dashboard_Service: Consume 'AUTH_SELLER_DASHBOARD.USER_CREATED'
         Auth_Service-->>Client: 201 Created {user, token}
     else User exists
         Auth_Service-->>Client: 400 Bad Request (User already exists)
@@ -153,11 +178,14 @@ sequenceDiagram
     participant Client
     participant Cart_Service
     participant Auth_Middleware
+    participant Product_Service
     participant Cart_DB
 
     Client->>Cart_Service: POST /api/cart/items (productId, quantity) with Auth Token
     Cart_Service->>Auth_Middleware: Verify Token
     Auth_Middleware-->>Cart_Service: Token Valid (user info)
+    Cart_Service->>Product_Service: GET /api/products/:productId
+    Product_Service-->>Cart_Service: Product details (stock)
     Cart_Service->>Cart_DB: Add/Update item in user's cart
     Cart_DB-->>Cart_Service: Updated Cart
     Cart_Service-->>Client: 200 OK {cart}
@@ -178,6 +206,7 @@ sequenceDiagram
     participant Order_Service
     participant Cart_Service
     participant Product_Service
+    participant Inventory_Service
     participant Order_DB
 
     Client->>Order_Service: POST /api/orders
@@ -185,9 +214,11 @@ sequenceDiagram
     Cart_Service-->>Order_Service: Cart items
     loop for each cart item
         Order_Service->>Product_Service: GET /api/products/:productId
-        Product_Service-->>Order_Service: Product details (price)
+        Product_Service-->>Order_Service: Product details (price, stock)
     end
     Order_Service->>Order_Service: Calculate total price
+    Order_Service->>Inventory_Service: POST /api/inventory/reserve
+    Inventory_Service-->>Order_Service: Reservation successful
     Order_Service->>Order_DB: Create new order
     Order_DB-->>Order_Service: Saved Order
     Order_Service-->>Client: 201 Created {order}
@@ -202,6 +233,9 @@ sequenceDiagram
     participant Order_Service
     participant Razorpay
     participant Payment_DB
+    participant RabbitMQ
+    participant Notification_Service
+    participant Seller_Dashboard_Service
 
     Client->>Payment_Service: POST /api/payment/create/:orderId
     Payment_Service->>Order_Service: GET /api/orders/:orderId
@@ -215,10 +249,18 @@ sequenceDiagram
     Razorpay-->>Client: { razorpay_payment_id, razorpay_order_id, razorpay_signature }
 
     Client->>Payment_Service: POST /api/payment/verify
-    Payment_Service->>Razorpay: Verify signature
-    Razorpay-->>Payment_Service: Signature valid
-    Payment_Service->>Payment_DB: Update payment (status: SUCCESSFUL)
-    Payment_Service-->>Client: 200 OK {message: "Payment verified"}
+    Payment_Service->>Payment_Service: Verify signature
+    alt Signature is valid
+        Payment_Service->>Payment_DB: Update payment (status: SUCCESSFUL)
+        Payment_Service->>RabbitMQ: Publish "PAYMENT_NOTIFICATION.PAYMENT_COMPLETED"
+        Payment_Service->>RabbitMQ: Publish "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED"
+        RabbitMQ-->>Notification_Service: Consume 'PAYMENT_NOTIFICATION.PAYMENT_COMPLETED'
+        Notification_Service-->>Notification_Service: Send Payment Confirmation Email
+        RabbitMQ-->>Seller_Dashboard_Service: Consume 'PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED'
+        Payment_Service-->>Client: 200 OK {message: "Payment verified"}
+    else Signature is invalid
+        Payment_Service-->>Client: 400 Bad Request (Invalid signature)
+    end
 ```
 
 ### AI Buddy Socket Connection Flow
@@ -237,31 +279,6 @@ sequenceDiagram
     end
 ```
 
-### Asynchronous Communication with RabbitMQ (Example: Order Creation)
-
-```mermaid
-graph TD
-    subgraph "Order Service"
-        A[1. Create Order] --> B{Publish 'order.created' event};
-    end
-
-    subgraph "RabbitMQ"
-        C(Exchange: 'orders_exchange')
-    end
-
-    subgraph "Notification Service (Future)"
-        D[Queue: 'notifications_queue'] --> E[2. Consume event & Send Email/SMS];
-    end
-
-    subgraph "Inventory Service (Future)"
-        F[Queue: 'inventory_queue'] --> G[3. Consume event & Update Stock];
-    end
-
-    B -- 'order.created' --> C;
-    C -- Routing Key: 'order.created' --> D;
-    C -- Routing Key: 'order.created' --> F;
-```
-
 ## 🌟 Current Services Spotlight
 
 Here are the foundational services currently powering microBazaar:
@@ -269,8 +286,8 @@ Here are the foundational services currently powering microBazaar:
 ### 🔐 Auth Service
 
 -   **Port:** `3000`
--   **Description:** The gatekeeper of microBazaar! This service is responsible for all things user authentication – from secure registration and login to generating and validating access tokens. It ensures that only legitimate users can access protected resources.
--   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `JWT`, `bcryptjs`, `ioredis` (for session/token management).
+-   **Description:** The gatekeeper of microBazaar! This service is responsible for all things user authentication – from secure registration and login to generating and validating access tokens. It ensures that only legitimate users can access protected resources. It communicates with the Notification and Seller Dashboard services via RabbitMQ.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `JWT`, `bcryptjs`, `ioredis` (for session/token management), `amqplib`.
 
 #### API Endpoints
 
@@ -283,8 +300,6 @@ Here are the foundational services currently powering microBazaar:
 | POST   | `/api/auth/users/me/addresses` | Add a new address for the user   | Yes           |
 | GET    | `/api/auth/users/me/addresses` | Get all addresses for the user   | Yes           |
 | DELETE | `/api/auth/users/me/addresses/:addressId` | Delete a user's address | Yes           |
-
-
 ### 🛍️ Product Service
 
 -   **Port:** `3001`
@@ -305,8 +320,8 @@ Here are the foundational services currently powering microBazaar:
 ### 🛒 Cart Service
 
 -   **Port:** `3002`
--   **Description:** Your shopping companion! This service manages user shopping carts, allowing for items to be added, updated, and removed seamlessly.
--   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `JWT`.
+-   **Description:** Your shopping companion! This service manages user shopping carts, allowing for items to be added, updated, and removed seamlessly. It communicates with the Product service to check for stock availability.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `axios`.
 
 #### API Endpoints
 
@@ -320,7 +335,7 @@ Here are the foundational services currently powering microBazaar:
 ### 📦 Order Service
 
 -   **Port:** `3003`
--   **Description:** This service is responsible for managing orders. It orchestrates the order creation process by communicating with the Cart and Product services to build a new order.
+-   **Description:** This service is responsible for managing orders. It orchestrates the order creation process by communicating with the Cart and Product services to build a new order. It also communicates with an Inventory service to reserve stock.
 -   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `axios`.
 
 #### API Endpoints
@@ -336,8 +351,8 @@ Here are the foundational services currently powering microBazaar:
 ### 💳 Payment Service
 
 -   **Port:** `3004`
--   **Description:** This service handles the payment process. It integrates with Razorpay to create and verify payments for orders.
--   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `Razorpay`, `axios`.
+-   **Description:** This service handles the payment process. It integrates with Razorpay to create and verify payments for orders. It communicates with the Notification and Seller Dashboard services via RabbitMQ.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `Razorpay`, `axios`, `amqplib`.
 
 #### API Endpoints
 
@@ -355,8 +370,14 @@ Here are the foundational services currently powering microBazaar:
 ### 🔔 Notification Service
 
 -   **Port:** `3006`
--   **Description:** This service works behind the scenes to keep users informed. It listens for events from other services (like `order.created`) via RabbitMQ and sends out notifications, such as emails, to the user. It's a vital part of our event-driven architecture.
--   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `amqplib` (for RabbitMQ), `nodemailer`.
+-   **Description:** This service works behind the scenes to keep users informed. It listens for events from other services (like `AUTH_NOTIFICATION.USER_CREATED` and `PAYMENT_NOTIFICATION.PAYMENT_COMPLETED`) via RabbitMQ and sends out notifications, such as emails, to the user.
+-   **Key Technologies:** `Node.js`, `Express`, `amqplib` (for RabbitMQ), `nodemailer`.
+
+### 📈 Seller Dashboard Service
+
+-   **Port:** `3007` (Assumed)
+-   **Description:** This service provides a dashboard for sellers to manage their products, view sales data, and track their performance. It listens for events from the Auth and Payment services via RabbitMQ.
+-   **Key Technologies:** (Assumed) `Node.js`, `Express`, `MongoDB`, `amqplib`.
 
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
@@ -367,7 +388,7 @@ Our journey has just begun! Here's a sneak peek at the exciting features and arc
 -   [x] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
 -   [x] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
 -   [x] **Notification Service:** Keep users informed with real-time updates via email, SMS, or push notifications.
--   [ ] **RabbitMQ Integration:** Implement robust asynchronous communication patterns across all microservices.
+-   [x] **RabbitMQ Integration:** Implement robust asynchronous communication patterns across all microservices.
 -   [ ] **AWS Deployment:** Strategically deploy each microservice to AWS, optimizing for performance, cost, and reliability.
 -   [ ] **Frontend Application:** Develop a captivating user interface to bring microBazaar to life!
 
