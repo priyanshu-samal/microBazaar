@@ -11,6 +11,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
+
+
+app.get('/', (req, res) => {
+  res.send('Product Service is running');
+});
+
 app.use('/api/products', productRoutes);
 
 

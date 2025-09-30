@@ -1,6 +1,7 @@
 const { uploadImage } = require("../services/imagekit.service");
 const productModel = require("../models/product.model");
 const mongoose = require('mongoose');
+const { publishToQueue } = require("../broker/broker")
 
 const createProduct = async (req, res) => {
   try {
@@ -31,9 +32,19 @@ const createProduct = async (req, res) => {
       stock,
     });
 
-    await product.save();
+    await publishToQueue("PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED", product);
+        await publishToQueue("PRODUCT_NOTIFICATION.PRODUCT_CREATED", {
+            email: req.user.email,
+            productId: product._id,
+            sellerId: seller
+        });
 
-    res.status(201).json(product);
+    
+
+    return res.status(201).json({
+            message: 'Product created',
+            data: product,
+        });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

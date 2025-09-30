@@ -1,5 +1,10 @@
 const orderModel = require('../models/order.model');
 const axios = require('axios'); 
+const { publishToQueue } = require("../broker/broker")
+
+// -------------------- CREATE ORDER --------------------
+
+
 
 async function createOrder(req, res) {
  const user=req.user;
@@ -108,7 +113,7 @@ async function createOrder(req, res) {
     orderId: order._id,
   });
 
-        
+      await publishToQueue("ORDER_SELLER_DASHBOARD.ORDER_CREATED", order)  
 
 
 

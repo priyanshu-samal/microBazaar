@@ -7,6 +7,11 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Routes
+app.get('/', (req, res) => {
+  res.send('Cart Service is running');
+});
+
+
 
 app.use('/api/cart', cartRoutes);
 
