@@ -46,6 +46,7 @@ graph TD
         H[AI Buddy Service]
         O[Notification Service]
         S[Seller Dashboard Service]
+        IS[Inventory Service]
     end
 
     subgraph Databases
@@ -87,18 +88,30 @@ graph TD
     C -- "AUTH_NOTIFICATION.USER_CREATED" --> N
     C -- "AUTH_SELLER_DASHBOARD.USER_CREATED" --> N
     
+    D -- "PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED" --> N
+    D -- "PRODUCT_NOTIFICATION.PRODUCT_CREATED" --> N
+
+    F -- "ORDER_SELLER_DASHBOARD.ORDER_CREATED" --> N
+
     G -- "PAYMENT_NOTIFICATION.PAYMENT_COMPLETED" --> N
     G -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED" --> N
     
     N -- "AUTH_NOTIFICATION.USER_CREATED" --> O
+    N -- "PAYMENT_NOTIFICATION.PAYMENT_INITIATED" --> O
     N -- "PAYMENT_NOTIFICATION.PAYMENT_COMPLETED" --> O
+    N -- "PAYMENT_NOTIFICATION.PAYMENT_FAILED" --> O
+    N -- "PRODUCT_NOTIFICATION.PRODUCT_CREATED" --> O
     
     N -- "AUTH_SELLER_DASHBOARD.USER_CREATED" --> S
-    N -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED" --> S
+    N -- "PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED" --> S
+    N -- "ORDER_SELLER_DASHBOARD.ORDER_CREATED" --> S
+    N -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_CREATED" --> S
+    N -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATE" --> S
     
     F -- "HTTP GET" --> D
     E -- "HTTP GET" --> D
     G -- "HTTP GET" --> F
+    F -- "HTTP POST" --> IS
 
 ```
 
@@ -157,6 +170,9 @@ sequenceDiagram
     participant Auth_Middleware
     participant ImageKit_Service
     participant Product_DB
+    participant RabbitMQ
+    participant Notification_Service
+    participant Seller_Dashboard_Service
 
     Client->>Product_Service: POST /api/products (product data, image file) with Auth Token
     Product_Service->>Auth_Middleware: Verify Token
@@ -167,6 +183,14 @@ sequenceDiagram
 
     Product_Service->>Product_DB: Create new product with image URL
     Product_DB-->>Product_Service: Saved Product
+
+    Product_Service->>RabbitMQ: Publish 'PRODUCT_NOTIFICATION.PRODUCT_CREATED'
+    Product_Service->>RabbitMQ: Publish 'PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED'
+    
+    RabbitMQ-->>Notification_Service: Consume 'PRODUCT_NOTIFICATION.PRODUCT_CREATED'
+    Notification_Service-->>Notification_Service: Send New Product Email
+
+    RabbitMQ-->>Seller_Dashboard_Service: Consume 'PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED'
 
     Product_Service-->>Client: 201 Created {product}
 ```
@@ -208,6 +232,8 @@ sequenceDiagram
     participant Product_Service
     participant Inventory_Service
     participant Order_DB
+    participant RabbitMQ
+    participant Seller_Dashboard_Service
 
     Client->>Order_Service: POST /api/orders
     Order_Service->>Cart_Service: GET /api/cart
@@ -221,6 +247,10 @@ sequenceDiagram
     Inventory_Service-->>Order_Service: Reservation successful
     Order_Service->>Order_DB: Create new order
     Order_DB-->>Order_Service: Saved Order
+    
+    Order_Service->>RabbitMQ: Publish 'ORDER_SELLER_DASHBOARD.ORDER_CREATED'
+    RabbitMQ-->>Seller_Dashboard_Service: Consume 'ORDER_SELLER_DASHBOARD.ORDER_CREATED'
+    
     Order_Service-->>Client: 201 Created {order}
 ```
 
@@ -277,6 +307,14 @@ sequenceDiagram
     else JWT is invalid
         AI_Buddy_Service-->>Client: Authentication error
     end
+    
+    Client->>AI_Buddy_Service: on('message', 'find product X')
+    AI_Buddy_Service->>AI_Buddy_Service: agent.invoke('find product X')
+    AI_Buddy_Service->>Product_Service: GET /api/products?q=X
+    Product_Service-->>AI_Buddy_Service: Product details
+    AI_Buddy_Service->>Cart_Service: POST /api/cart/items
+    Cart_Service-->>AI_Buddy_Service: Cart updated
+    AI_Buddy_Service-->>Client: emit('message', 'I have added product X to your cart')
 ```
 
 ## 🌟 Current Services Spotlight
@@ -286,7 +324,7 @@ Here are the foundational services currently powering microBazaar:
 ### 🔐 Auth Service
 
 -   **Port:** `3000`
--   **Description:** The gatekeeper of microBazaar! This service is responsible for all things user authentication – from secure registration and login to generating and validating access tokens. It ensures that only legitimate users can access protected resources. It communicates with the Notification and Seller Dashboard services via RabbitMQ.
+-   **Description:** The gatekeeper of microBazaar! This service is responsible for all things user authentication – from secure registration and login to generating and validating access tokens. It ensures that only legitimate users can access protected resources. It communicates with the Notification and Seller Dashboard services via RabbitMQ. It also manages user addresses.
 -   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `JWT`, `bcryptjs`, `ioredis` (for session/token management), `amqplib`.
 
 #### API Endpoints
@@ -300,11 +338,12 @@ Here are the foundational services currently powering microBazaar:
 | POST   | `/api/auth/users/me/addresses` | Add a new address for the user   | Yes           |
 | GET    | `/api/auth/users/me/addresses` | Get all addresses for the user   | Yes           |
 | DELETE | `/api/auth/users/me/addresses/:addressId` | Delete a user's address | Yes           |
+
 ### 🛍️ Product Service
 
 -   **Port:** `3001`
--   **Description:** The heart of our catalog! This service meticulously manages all product-related operations. It handles creating new products, retrieving product details, updating inventory information, and even managing product images with `ImageKit`.
--   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `ImageKit`, `Multer` (for file uploads).
+-   **Description:** The heart of our catalog! This service meticulously manages all product-related operations. It handles creating new products, retrieving product details, updating inventory information, and even managing product images with `ImageKit`. It publishes events to the Notification and Seller Dashboard services when a new product is created.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `ImageKit`, `Multer` (for file uploads), `amqplib`.
 
 #### API Endpoints
 
@@ -335,8 +374,8 @@ Here are the foundational services currently powering microBazaar:
 ### 📦 Order Service
 
 -   **Port:** `3003`
--   **Description:** This service is responsible for managing orders. It orchestrates the order creation process by communicating with the Cart and Product services to build a new order. It also communicates with an Inventory service to reserve stock.
--   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `axios`.
+-   **Description:** This service is responsible for managing orders. It orchestrates the order creation process by communicating with the Cart and Product services to build a new order. It also communicates with an Inventory service to reserve stock and publishes an event to the Seller Dashboard service when an order is created.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `axios`, `amqplib`.
 
 #### API Endpoints
 
@@ -351,7 +390,7 @@ Here are the foundational services currently powering microBazaar:
 ### 💳 Payment Service
 
 -   **Port:** `3004`
--   **Description:** This service handles the payment process. It integrates with Razorpay to create and verify payments for orders. It communicates with the Notification and Seller Dashboard services via RabbitMQ.
+-   **Description:** This service handles the payment process. It integrates with Razorpay to create and verify payments for orders. It communicates with the Notification and Seller Dashboard services via RabbitMQ. **Note:** This service currently only publishes a `PAYMENT_COMPLETED` event. It does not yet publish `PAYMENT_INITIATED` or `PAYMENT_FAILED` events.
 -   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `Razorpay`, `axios`, `amqplib`.
 
 #### API Endpoints
@@ -364,20 +403,40 @@ Here are the foundational services currently powering microBazaar:
 ### 🤖 AI Buddy Service
 
 -   **Port:** `3005`
--   **Description:** Your intelligent shopping assistant! This service provides real-time support and recommendations to users via a WebSocket connection. It uses `socket.io` for fast, bidirectional communication.
--   **Key Technologies:** `Node.js`, `Express`, `socket.io`, `JWT`.
+-   **Description:** Your intelligent shopping assistant! This service provides real-time support and recommendations to users via a WebSocket connection. It uses `socket.io` for fast, bidirectional communication and leverages a **LangChain** agent with **Google's Generative AI** to understand user queries and perform actions like searching for products and adding them to the cart.
+-   **Key Technologies:** `Node.js`, `Express`, `socket.io`, `JWT`, `@langchain/langgraph`, `@langchain/google-genai`.
 
 ### 🔔 Notification Service
 
 -   **Port:** `3006`
--   **Description:** This service works behind the scenes to keep users informed. It listens for events from other services (like `AUTH_NOTIFICATION.USER_CREATED` and `PAYMENT_NOTIFICATION.PAYMENT_COMPLETED`) via RabbitMQ and sends out notifications, such as emails, to the user.
+-   **Description:** This service works behind the scenes to keep users informed. It listens for events from other services via RabbitMQ and sends out notifications, such as emails, to the user.
 -   **Key Technologies:** `Node.js`, `Express`, `amqplib` (for RabbitMQ), `nodemailer`.
+-   **Consumed Events:**
+    -   `AUTH_NOTIFICATION.USER_CREATED`
+    -   `PAYMENT_NOTIFICATION.PAYMENT_INITIATED`
+    -   `PAYMENT_NOTIFICATION.PAYMENT_COMPLETED`
+    -   `PAYMENT_NOTIFICATION.PAYMENT_FAILED`
+    -   `PRODUCT_NOTIFICATION.PRODUCT_CREATED`
 
 ### 📈 Seller Dashboard Service
 
--   **Port:** `3007` (Assumed)
--   **Description:** This service provides a dashboard for sellers to manage their products, view sales data, and track their performance. It listens for events from the Auth and Payment services via RabbitMQ.
--   **Key Technologies:** (Assumed) `Node.js`, `Express`, `MongoDB`, `amqplib`.
+-   **Port:** `3007`
+-   **Description:** This service provides a dashboard for sellers to manage their products, view sales data, and track their performance. It listens for events from the Auth, Product, Order, and Payment services via RabbitMQ to keep its data up-to-date.
+-   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `amqplib`.
+-   **Consumed Events:**
+    -   `AUTH_SELLER_DASHBOARD.USER_CREATED`
+    -   `PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED`
+    -   `ORDER_SELLER_DASHBOARD.ORDER_CREATED`
+    -   `PAYMENT_SELLER_DASHBOARD.PAYMENT_CREATED`
+    -   `PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATE`
+
+#### API Endpoints
+
+| Method | Endpoint      | Description                  | Auth Required (Role) |
+| :----- | :------------ | :--------------------------- | :------------------- |
+| GET    | `/api/seller/metrics` | Get seller metrics           | Yes (Seller)         |
+| GET    | `/api/seller/orders`  | Get orders for the seller    | Yes (Seller)         |
+| GET    | `/api/seller/products`| Get products for the seller  | Yes (Seller)         |
 
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
@@ -402,7 +461,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
     ```
 2.  **Navigate to a service directory:**
     ```bash
-    cd microBazaar/auth  # or microBazaar/product or microBazaar/cart or microBazaar/order or microBazaar/payment or microBazaar/ai-buddy or microBazaar/notification
+    cd microBazaar/auth  # or any other service
     ```
 3.  **Install dependencies:**
     ```bash
@@ -424,6 +483,7 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
 -   **ImageKit:** For efficient image management, optimization, and delivery.
 -   **Razorpay:** Our payment processing partner.
 -   **socket.io:** For real-time, bidirectional and event-based communication.
+-   **LangChain:** For building applications with large language models.
 -   **Jest:** Our go-to testing framework for robust and reliable code.
 -   **RabbitMQ:** For inter-service communication and message queuing.
 -   **amqplib:** A comprehensive, fully-featured RabbitMQ client for Node.js.
