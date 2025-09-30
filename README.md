@@ -28,90 +28,84 @@ Initially, services communicate directly via RESTful APIs. However, the architec
 ### High-Level Architecture
 
 ```mermaid
-graph TD
-    subgraph User
-        A[Client Browser/App]
+graph LR
+    subgraph "User Interaction"
+        A[Client Browser/App] --> B(API Gateway);
     end
 
-    subgraph "API Gateway (Future)"
-        B[API Gateway]
+    subgraph "Core Services"
+        B --> C[Auth Service];
+        B --> D[Product Service];
+        B --> E[Cart Service];
+        B --> F[Order Service];
+        B --> G[Payment Service];
     end
 
-    subgraph "Implemented Microservices"
-        C[Auth Service]
-        D[Product Service]
-        E[Cart Service]
-        F[Order Service]
-        G[Payment Service]
-        H[AI Buddy Service]
-        O[Notification Service]
-        S[Seller Dashboard Service]
-        IS[Inventory Service]
+    subgraph "Supporting Services"
+        B --> H[AI Buddy Service];
+        B --> S[Seller Dashboard Service];
+        O[Notification Service];
+        IS[Inventory Service];
     end
 
-    subgraph Databases
-        I["Auth DB (MongoDB)"]
-        J["Product DB (MongoDB)"]
-        K["Cart DB (MongoDB)"]
-        L["Order DB (MongoDB)"]
-        M["Payment DB (MongoDB)"]
-        P["Notification DB (MongoDB)"]
+    subgraph "Data & Events"
+        subgraph Databases
+            C --- DB1[(Auth DB)];
+            D --- DB2[(Product DB)];
+            E --- DB3[(Cart DB)];
+            F --- DB4[(Order DB)];
+            G --- DB5[(Payment DB)];
+            S --- DB6[(Seller DB)];
+        end
+        
+        subgraph "Message Broker"
+            N[RabbitMQ];
+        end
+
+        subgraph "External"
+            IK[ImageKit];
+            RP[Razorpay];
+        end
     end
 
-    subgraph "Message Broker"
-        N[RabbitMQ]
-    end
-    
-    subgraph "Image Storage"
-        IK[ImageKit]
-    end
+    %% Service to DB Connections
+    C --> DB1;
+    D --> DB2;
+    E --> DB3;
+    F --> DB4;
+    G --> DB5;
+    S --> DB6;
 
-    A --> B
+    %% HTTP Communications
+    E --> D;
+    F --> D;
+    F --> E;
+    G --> F;
+    F --> IS;
+    H --> D;
+    H --> E;
 
-    B --> C
-    B --> D
-    B --> E
-    B --> F
-    B --> G
-    B --> H
-    B --> S
+    %% External Service Communications
+    D --> IK;
+    G --> RP;
 
-    C --- I
-    D --- J
-    E --- K
-    F --- L
-    G --- M
-    O --- P
-    
-    D -- "CRUD" --> IK
+    %% Event Publishing
+    C -- "USER_CREATED" --> N;
+    D -- "PRODUCT_CREATED" --> N;
+    F -- "ORDER_CREATED" --> N;
+    G -- "PAYMENT_COMPLETED" --> N;
 
-    C -- "AUTH_NOTIFICATION.USER_CREATED" --> N
-    C -- "AUTH_SELLER_DASHBOARD.USER_CREATED" --> N
+    %% Event Consumption
+    N -- "USER_CREATED" --> O;
+    N -- "PRODUCT_CREATED" --> O;
+    N -- "PAYMENT_COMPLETED" --> O;
+    N -- "PAYMENT_INITIATED" --> O;
+    N -- "PAYMENT_FAILED" --> O;
     
-    D -- "PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED" --> N
-    D -- "PRODUCT_NOTIFICATION.PRODUCT_CREATED" --> N
-
-    F -- "ORDER_SELLER_DASHBOARD.ORDER_CREATED" --> N
-
-    G -- "PAYMENT_NOTIFICATION.PAYMENT_COMPLETED" --> N
-    G -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED" --> N
-    
-    N -- "AUTH_NOTIFICATION.USER_CREATED" --> O
-    N -- "PAYMENT_NOTIFICATION.PAYMENT_INITIATED" --> O
-    N -- "PAYMENT_NOTIFICATION.PAYMENT_COMPLETED" --> O
-    N -- "PAYMENT_NOTIFICATION.PAYMENT_FAILED" --> O
-    N -- "PRODUCT_NOTIFICATION.PRODUCT_CREATED" --> O
-    
-    N -- "AUTH_SELLER_DASHBOARD.USER_CREATED" --> S
-    N -- "PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED" --> S
-    N -- "ORDER_SELLER_DASHBOARD.ORDER_CREATED" --> S
-    N -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_CREATED" --> S
-    N -- "PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATE" --> S
-    
-    F -- "HTTP GET" --> D
-    E -- "HTTP GET" --> D
-    G -- "HTTP GET" --> F
-    F -- "HTTP POST" --> IS
+    N -- "USER_CREATED" --> S;
+    N -- "PRODUCT_CREATED" --> S;
+    N -- "ORDER_CREATED" --> S;
+    N -- "PAYMENT_UPDATED" --> S;
 
 ```
 
