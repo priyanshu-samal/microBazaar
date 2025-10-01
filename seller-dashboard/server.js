@@ -1,4 +1,5 @@
 require('dotenv').config();
+console.log("RABBIT_URL:", process.env.RABBIT_URL);
 const app = require('./src/app');
 
 const connectDB = require('./src/db/db');

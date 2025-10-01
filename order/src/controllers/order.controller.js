@@ -18,7 +18,7 @@ async function createOrder(req, res) {
   if (requestItems) {
     sourceItems = requestItems;
   } else {
-    const cartResponse = await axios.get('http://127.0.0.1:3002/api/cart', {
+    const cartResponse = await axios.get('http://microbazzar-alb-1038075917.ap-south-1.elb.amazonaws.com/api/cart', {
       headers: { Authorization: `Bearer ${token}` }
     });
     sourceItems = cartResponse.data.cart.items.map(i => ({ productId: i.productId, quantity: i.quantity }));
@@ -41,7 +41,7 @@ async function createOrder(req, res) {
         };
       }
 
-      const productResponse = await axios.get(`http://127.0.0.1:3001/api/products/${item.productId}`);
+      const productResponse = await axios.get(`http://microbazzar-alb-1038075917.ap-south-1.elb.amazonaws.com/api/products/${item.productId}`);
       const product = productResponse.data;
       return {
         product: product._id,
@@ -75,7 +75,7 @@ async function createOrder(req, res) {
   // Attempt to reserve inventory before creating the order
   try {
     await axios.post(
-      'http://127.0.0.1:3003/api/inventory/reserve',
+      'http://microbazzar-alb-1038075917.ap-south-1.elb.amazonaws.com/api/inventory/reserve',
       {
         items: products.map(p => ({ productId: p.product, quantity: p.quantity })),
       },

@@ -9,10 +9,7 @@ const { HumanMessage } = require("@langchain/core/messages");
 async function initSocketServer(httpServer) {
 
     const io = new Server(httpServer, {
-        cors: {
-            origin: "*",
-            methods: ["GET", "POST"]
-        }
+       path:"/api/socket/socket.io"
     })
 
     io.use((socket, next) => {

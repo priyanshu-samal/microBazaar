@@ -4,7 +4,7 @@ const axios=require("axios")
 
 const searchProduct=tool(async({input, token})=>{
 
-const response=await axios.get(`http://localhost:3001/api/products?q=${input}`,{
+const response=await axios.get(`http://microbazzar-alb-1038075917.ap-south-1.elb.amazonaws.com/api/products?q=${input}`,{
     headers:{
         Authorization:`Bearer ${token}`
     }
@@ -26,7 +26,7 @@ return JSON.stringify(response.data)
 
 const addProductToCart=tool(async({productId, qty=1,token})=>{
 
-    const response=await axios.post(`http://localhost:3002/api/cart/items`,{
+    const response=await axios.post(`http://microbazzar-alb-1038075917.ap-south-1.elb.amazonaws.com/api/cart/items`,{
         productId,
         qty
     },{

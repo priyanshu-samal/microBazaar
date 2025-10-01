@@ -11,7 +11,7 @@ async function addItemToCart(req,res){
       if(!cart){
         cart=new cartmodel({user:user.id, items:[]});
       }
-      const productResponse = await axios.get(`http://127.0.0.1:3001/api/products/${productId}`);
+      const productResponse = await axios.get(`http://microbazzar-alb-1038075917.ap-south-1.elb.amazonaws.com/api/products/${productId}`);
       const product = productResponse.data;
       const stockAvailable = Number(product.stock) || 0;
 
@@ -49,7 +49,7 @@ async function updateCartItem(req, res) {
             return res.status(404).json({ error: "Item not found in cart" });
         }
 
-        const productResponse = await axios.get(`http://127.0.0.1:3001/api/products/${productId}`);
+        const productResponse = await axios.get(`http://microbazzar-alb-1038075917.ap-south-1.elb.amazonaws.com/api/products/${productId}`);
         const product = productResponse.data;
         const stockAvailable = Number(product.stock) || 0;
 

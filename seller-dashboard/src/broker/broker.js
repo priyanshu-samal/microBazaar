@@ -23,6 +23,10 @@ async function connect() {
 
 async function publishToQueue(queueName, data = {}) {
     if (!channel || !connection) await connect();
+    if (!channel) {
+        console.error("No channel available. Exiting publish.");
+        return;
+    }
 
     await channel.assertQueue(queueName, {
         durable: true
@@ -36,6 +40,10 @@ async function publishToQueue(queueName, data = {}) {
 async function subscribeToQueue(queueName, callback) {
 
     if (!channel || !connection) await connect();
+    if (!channel) {
+        console.error("No channel available. Exiting subscription.");
+        return;
+    }
 
     await channel.assertQueue(queueName, {
         durable: true
