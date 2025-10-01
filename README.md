@@ -28,7 +28,7 @@ Initially, services communicate directly via RESTful APIs. However, the architec
 ### High-Level Architecture
 
 ```mermaid
-graph LR
+graph TD
     subgraph "User Interaction"
         A[Client Browser/App] --> B(API Gateway);
     end
@@ -50,12 +50,12 @@ graph LR
 
     subgraph "Data & Events"
         subgraph Databases
-            C --- DB1[(Auth DB)];
-            D --- DB2[(Product DB)];
-            E --- DB3[(Cart DB)];
-            F --- DB4[(Order DB)];
-            G --- DB5[(Payment DB)];
-            S --- DB6[(Seller DB)];
+            DB1[(Auth DB)]
+            DB2[(Product DB)]
+            DB3[(Cart DB)]
+            DB4[(Order DB)]
+            DB5[(Payment DB)]
+            DB6[(Seller DB)]
         end
         
         subgraph "Message Broker"
@@ -69,12 +69,12 @@ graph LR
     end
 
     %% Service to DB Connections
-    C --> DB1;
-    D --> DB2;
-    E --> DB3;
-    F --> DB4;
-    G --> DB5;
-    S --> DB6;
+    C --- DB1;
+    D --- DB2;
+    E --- DB3;
+    F --- DB4;
+    G --- DB5;
+    S --- DB6;
 
     %% HTTP Communications
     E --> D;
@@ -384,15 +384,15 @@ Here are the foundational services currently powering microBazaar:
 ### 💳 Payment Service
 
 -   **Port:** `3004`
--   **Description:** This service handles the payment process. It integrates with Razorpay to create and verify payments for orders. It communicates with the Notification and Seller Dashboard services via RabbitMQ. **Note:** This service currently only publishes a `PAYMENT_COMPLETED` event. It does not yet publish `PAYMENT_INITIATED` or `PAYMENT_FAILED` events.
+-   **Description:** This service handles the payment process. It integrates with Razorpay to create and verify payments for orders. It communicates with the Notification and Seller Dashboard services via RabbitMQ.
 -   **Key Technologies:** `Node.js`, `Express`, `MongoDB`, `Razorpay`, `axios`, `amqplib`.
 
 #### API Endpoints
 
 | Method | Endpoint | Description | Auth Required (Role) |
 | :--- | :--- | :--- | :--- |
-| POST | `/api/payment/create/:orderId` | Create a new payment for an order | Yes (User) |
-| POST | `/api/payment/verify` | Verify a payment | Yes (User) |
+| POST | `/api/payments/create/:orderId` | Create a new payment for an order | Yes (User) |
+| POST | `/api/payments/verify` | Verify a payment | Yes (User) |
 
 ### 🤖 AI Buddy Service
 
@@ -428,9 +428,9 @@ Here are the foundational services currently powering microBazaar:
 
 | Method | Endpoint      | Description                  | Auth Required (Role) |
 | :----- | :------------ | :--------------------------- | :------------------- |
-| GET    | `/api/seller/metrics` | Get seller metrics           | Yes (Seller)         |
-| GET    | `/api/seller/orders`  | Get orders for the seller    | Yes (Seller)         |
-| GET    | `/api/seller/products`| Get products for the seller  | Yes (Seller)         |
+| GET    | `/api/seller/dashboard/metrics` | Get seller metrics           | Yes (Seller)         |
+| GET    | `/api/seller/dashboard/orders`  | Get orders for the seller    | Yes (Seller)         |
+| GET    | `/api/seller/dashboard/products`| Get products for the seller  | Yes (Seller)         |
 
 ## 🚧 Roadmap to Awesomeness: What's Next for microBazaar?
 
