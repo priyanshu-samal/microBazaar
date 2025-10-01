@@ -23,6 +23,29 @@ Initially, services communicate directly via RESTful APIs. However, the architec
 
 -   **AWS Cloud Hosting:** Each microservice will find its home on **Amazon Web Services (AWS)**. We envision deploying these services independently across various AWS compute options (e.g., EC2, ECS, Lambda), leveraging AWS's robust infrastructure for high availability, scalability, and global reach. Each service will be a separate entity in the cloud, connecting securely to form the complete microBazaar platform.
 
+## 🐳 Containerization with Docker
+
+Each microservice in the microBazaar platform is containerized using Docker. This ensures that each service has a consistent and isolated environment, making it easy to develop, test, and deploy the services independently. The `dockerfile` for each service is based on the `node:18-alpine` image and follows a standard pattern:
+
+1.  **Set the working directory:** The working directory is set to `/app`.
+2.  **Copy package files:** The `package.json` and `package-lock.json` files are copied to the container.
+3.  **Install dependencies:** `npm install` is run to install the service's dependencies.
+4.  **Copy source code:** The rest of the service's source code is copied to the container.
+5.  **Expose port:** The port that the service listens on is exposed.
+6.  **Start the service:** The service is started using `npm start`.
+
+This consistent approach to containerization simplifies the deployment process and makes it easy to manage the services in a production environment.
+
+## ☁️ AWS Deployment
+
+The containerized nature of the microBazaar services makes them ideal for deployment to AWS. The Docker containers can be deployed to a variety of AWS services, including:
+
+-   **Amazon Elastic Container Service (ECS):** A fully managed container orchestration service that makes it easy to run, stop, and manage Docker containers on a cluster.
+-   **Amazon Elastic Kubernetes Service (EKS):** A managed Kubernetes service that makes it easy to deploy, manage, and scale containerized applications using Kubernetes.
+-   **AWS Fargate:** A serverless compute engine for containers that allows you to run containers without having to manage servers or clusters.
+
+By leveraging these AWS services, we can create a scalable, resilient, and cost-effective infrastructure for the microBazaar platform.
+
 ## 📊 Architecture and Flow Diagrams
 
 ### High-Level Architecture
@@ -436,13 +459,17 @@ Here are the foundational services currently powering microBazaar:
 
 Our journey has just begun! Here's a sneak peek at the exciting features and architectural enhancements we're planning:
 
+-   [x] **Auth Service:** Secure user authentication and authorization.
+-   [x] **Product Service:** Comprehensive product catalog management.
 -   [x] **Cart Service:** A dedicated service to manage user shopping carts, allowing seamless adding, removing, and updating of items.
 -   [x] **Order Service:** The brain behind transactions, handling order creation, processing, status updates, and history.
 -   [x] **Payment Service:** Securely integrate with various payment gateways to facilitate smooth and reliable transactions.
 -   [x] **AI Bot Service:** An intelligent companion for our users, offering personalized recommendations, customer support, and more.
 -   [x] **Notification Service:** Keep users informed with real-time updates via email, SMS, or push notifications.
+-   [x] **Seller Dashboard Service:** A dashboard for sellers to manage their products and view sales data.
 -   [x] **RabbitMQ Integration:** Implement robust asynchronous communication patterns across all microservices.
--   [ ] **AWS Deployment:** Strategically deploy each microservice to AWS, optimizing for performance, cost, and reliability.
+-   [x] **Docker Containerization:** Containerize all microservices for consistent and isolated environments.
+-   [x] **AWS Deployment:** All services are deployed on AWS, leveraging services like ECS and ALB for scalability and resilience.
 -   [ ] **Frontend Application:** Develop a captivating user interface to bring microBazaar to life!
 
 ## 🚀 Getting Started: Join the microBazaar Journey!
@@ -482,7 +509,8 @@ Ready to dive into the code? Follow these simple steps to get microBazaar up and
 -   **RabbitMQ:** For inter-service communication and message queuing.
 -   **amqplib:** A comprehensive, fully-featured RabbitMQ client for Node.js.
 -   **nodemailer:** A module for Node.js applications to allow easy as cake email sending.
--   **AWS (Planned):** Our cloud platform for scalable and resilient deployments.
+-   **Docker:** For containerizing our microservices.
+-   **AWS:** Our cloud platform for scalable and resilient deployments.
 
 ## 👋 Contributing: Be a Part of microBazaar!
 
