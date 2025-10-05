@@ -36,15 +36,95 @@ Each microservice in the microBazaar platform is containerized using Docker. Thi
 
 This consistent approach to containerization simplifies the deployment process and makes it easy to manage the services in a production environment.
 
+## 🚀 Getting Started: Join the microBazaar Journey!
+
+Ready to dive into the code? Head over to the [Local Development](#-local-development) section to get microBazaar up and running on your local machine.
+
+## 🏡 Local Development
+
+Follow these steps to get microBazaar up and running on your local machine:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/microBazaar.git
+    ```
+2.  **Set up environment variables:**
+    Each service requires its own set of environment variables to run correctly. Navigate to each service's directory, create a `.env` file, and add the necessary variables. Refer to the [Environment Variables](#-environment-variables) section for a complete list of variables for each service.
+
+3.  **Install dependencies and run the services:**
+    For each service you want to run:
+    ```bash
+    cd microBazaar/<service-name>  # e.g., cd microBazaar/auth
+    npm install
+    npm run dev
+    ```
+    You will need to run each service in a separate terminal window.
+
+## 🔑 Environment Variables
+
+Each service in microBazaar requires a `.env` file in its root directory with the following environment variables:
+
+### All Services
+-   `MONGO_URI`: The connection string for your MongoDB database.
+-   `RABBIT_URL`: The connection string for your RabbitMQ instance (e.g., from CloudAMQP).
+-   `NODE_ENV`: Set to `development` for local development.
+
+### Auth Service
+-   `JWT_SECRET`: A secret key for signing JWT tokens.
+-   `REDIS_HOST`: The host for your Redis instance.
+-   `REDIS_PORT`: The port for your Redis instance.
+-   `REDIS_PASSWORD`: The password for your Redis instance.
+
+### Product Service
+-   `IMAGEKIT_PUBLIC_KEY`: Your public key from ImageKit.
+-   `IMAGEKIT_PRIVATE_KEY`: Your private key from ImageKit.
+-   `IMAGEKIT_URL_ENDPOINT`: Your URL endpoint from ImageKit.
+
+### Payment Service
+-   `RAZORPAY_KEY_ID`: Your key ID from Razorpay.
+-   `RAZORPAY_KEY_SECRET`: Your key secret from Razorpay.
+
 ## ☁️ AWS Deployment
 
-The containerized nature of the microBazaar services makes them ideal for deployment to AWS. The Docker containers can be deployed to a variety of AWS services, including:
+**Disclaimer:** The original AWS deployment for this project has been shut down due to the high costs associated with maintaining the infrastructure. The following is a general guide on how you can deploy the microBazaar services to your own AWS account.
 
--   **Amazon Elastic Container Service (ECS):** A fully managed container orchestration service that makes it easy to run, stop, and manage Docker containers on a cluster.
--   **Amazon Elastic Kubernetes Service (EKS):** A managed Kubernetes service that makes it easy to deploy, manage, and scale containerized applications using Kubernetes.
--   **AWS Fargate:** A serverless compute engine for containers that allows you to run containers without having to manage servers or clusters.
+The containerized nature of the microBazaar services makes them ideal for deployment to AWS. Here's a general guide to deploying the services using Amazon ECS:
 
-By leveraging these AWS services, we can create a scalable, resilient, and cost-effective infrastructure for the microBazaar platform.
+1.  **Prerequisites:**
+    -   An AWS account.
+    -   AWS CLI installed and configured on your local machine.
+    -   Docker installed on your local machine.
+
+2.  **Create an ECR Repository for Each Service:**
+    For each microservice, create a new private repository in Amazon Elastic Container Registry (ECR). This is where you will store your Docker images.
+
+3.  **Build and Push Docker Images:**
+    For each service:
+    a.  Navigate to the service's directory.
+    b.  Build the Docker image: `docker build -t <repository-uri> .`
+    c.  Authenticate Docker to your ECR registry.
+    d.  Push the image to ECR: `docker push <repository-uri>`
+
+4.  **Set up an ECS Cluster:**
+    Create a new ECS cluster to run your containers. You can choose between the Fargate (serverless) or EC2 launch types.
+
+5.  **Create Task Definitions:**
+    For each service, create a new task definition in ECS. In the task definition, you will:
+    -   Specify the Docker image to use (the one you pushed to ECR).
+    -   Define the CPU and memory resources for the task.
+    -   Configure the container's port mappings.
+    -   **Crucially, define the environment variables** required for the service to run. You can inject these directly or use AWS Secrets Manager for sensitive values.
+
+6.  **Create Services:**
+    For each task definition, create a new service in your ECS cluster. The service will ensure that the specified number of tasks are running and will handle task replacement if a task fails.
+
+7.  **Set up an Application Load Balancer (ALB):**
+    Create an ALB to route incoming traffic to your services. You will need to create target groups for each service and configure listener rules on the ALB to route traffic based on the path (e.g., `/api/auth/*` goes to the auth service).
+
+8.  **Configure Security Groups:**
+    Ensure that your security groups are configured correctly to allow traffic between the ALB, the ECS tasks, and any other AWS resources they need to communicate with (like your database).
+
+This is a high-level overview. For detailed instructions, please refer to the official AWS documentation for ECR, ECS, and ALB.
 
 ## 📊 Architecture and Flow Diagrams
 
@@ -471,28 +551,6 @@ Our journey has just begun! Here's a sneak peek at the exciting features and arc
 -   [x] **Docker Containerization:** Containerize all microservices for consistent and isolated environments.
 -   [x] **AWS Deployment:** All services are deployed on AWS, leveraging services like ECS and ALB for scalability and resilience.
 -   [ ] **Frontend Application:** Develop a captivating user interface to bring microBazaar to life!
-
-## 🚀 Getting Started: Join the microBazaar Journey!
-
-Ready to dive into the code? Follow these simple steps to get microBazaar up and running on your local machine:
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/microBazaar.git
-    ```
-2.  **Navigate to a service directory:**
-    ```bash
-    cd microBazaar/auth  # or any other service
-    ```
-3.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-4.  **Start the development server:**
-    ```bash
-    npm run dev
-    ```
-    *(Repeat steps 2-4 for each service you wish to run.)*
 
 ## 🛠️ Core Technologies Powering microBazaar
 
